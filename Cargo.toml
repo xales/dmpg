@@ -1,0 +1,7 @@
+[package]
+name = "dmpg"
+version = "0.1.0"
+authors = ["Jacob Greenfield <xales@naveria.com>"]
+edition = "2018"
+
+[dependencies]
