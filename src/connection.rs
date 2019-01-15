@@ -119,7 +119,7 @@ byond_fn! { query(args...) {
         return None
     }
 
-    let c: Result<String, Box<Error>> = CONNECTION.with(|ref cell| {
+    let c: Result<String, Box<Error>> = CONNECTION.with(|cell| {
         let z = cell.borrow();
         let c = z.as_ref().ok_or("not connected")?;
         let arg_refs: Vec<_> = args[1..].iter().map(|x| x as &dyn ToSql).collect();
