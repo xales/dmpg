@@ -19,12 +19,10 @@ fn set_err<'a, I>(msg: I) where I: Into<Cow<'a, str>> {
 }
 
 byond_fn! { is_connected() {
-    let mut ret = None;
-    CONNECTION.with(|cell| ret = match *cell.borrow() {
+    CONNECTION.with(|cell| match *cell.borrow() {
         Some(_) => Some("true"),
         None => None
-    });
-    ret
+    })
 } }
 
 byond_fn! { connect(uri) {
@@ -121,45 +119,26 @@ byond_fn! { query(args...) {
         return None
     }
 
-    let mut ret: Option<String> = None;
-
-    CONNECTION.with(|cell| {
-        match *cell.borrow() {
-            Some(ref c) => {
-                let arg_refs: Vec<_> = args[1..].iter().map(|x| x as &dyn ToSql).collect();
-                match c.query(args[0].as_ref(), &arg_refs) {
-                    Ok(rows) => {
-                        let mut res = Vec::new();
-                        let col_types: Vec<_> = rows.columns().iter().map(|c| c.type_()).cloned().collect();
-                        for row in rows.into_iter() {
-                            let mut rowi = Vec::new();
-                            for (i, ct) in col_types.iter().enumerate() {
-                                let val = match get_row_val(ct, &row, i) {
-                                    Ok(v) => v,
-                                    Err(e) => { set_err(e.to_string()); return; }
-                                };
-                                rowi.push(val);
-                            }
-                            res.push(rowi);
-                        }
-                        match serde_json::to_string(&res) {
-                            Ok(s) => ret = Some(s),
-                            Err(e) => set_err(e.to_string()),
-                        }
-                    }
-                    Err(e) => {
-                        set_err(e.to_string());
-                    }
-                }
-            },
-            None => {
-                set_err("not connected");
-                ret = None;
-            },
+    let c: Result<String, Box<Error>> = CONNECTION.with(|ref cell| {
+        let z = cell.borrow();
+        let c = z.as_ref().ok_or("not connected")?;
+        let arg_refs: Vec<_> = args[1..].iter().map(|x| x as &dyn ToSql).collect();
+        let rows = c.query(args[0].as_ref(), &arg_refs)?;
+        let mut res = Vec::new();
+        let col_types: Vec<_> = rows.columns().iter().map(|c| c.type_()).cloned().collect();
+        for row in rows.into_iter() {
+            let mut rowi = Vec::new();
+            for (i, ct) in col_types.iter().enumerate() {
+                rowi.push(get_row_val(ct, &row, i)?);
+            }
+            res.push(rowi);
         }
+        Ok(serde_json::to_string(&res)?)
     });
-
-    ret
+    match c {
+        Ok(s) => Some(s),
+        Err(e) => { set_err(e.to_string()); None }
+    }
 } }
 
 byond_fn! { last_err() {
