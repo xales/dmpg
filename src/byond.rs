@@ -64,4 +64,15 @@ macro_rules! byond_fn {
             $crate::byond::byond_return(|| $body)
         }
     };
+
+    ($name:ident($argname:ident...) $body:block) => {
+        #[no_mangle]
+        pub unsafe extern "C" fn $name(
+            _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
+        ) -> *const ::std::os::raw::c_char {
+            let $argname = $crate::byond::parse_args(_argc, _argv);
+
+            $crate::byond::byond_return(|| $body)
+        }
+    };
 }
