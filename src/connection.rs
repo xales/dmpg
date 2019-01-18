@@ -141,6 +141,26 @@ byond_fn! { query(args...) {
     }
 } }
 
+byond_fn! { execute(args...) {
+    if args.len() < 1 {
+        set_err("no arguments provided to execute");
+        return None
+    }
+
+    let c: Result<String, Box<Error>> = CONNECTION.with(|cell| {
+        let z = cell.borrow();
+        let c = z.as_ref().ok_or("not connected")?;
+        let arg_refs: Vec<_> = args[1..].iter().map(|x| x as &dyn ToSql).collect();
+        let rowct = c.execute(args[0].as_ref(), &arg_refs)?;
+        Ok(rowct.to_string())
+    });
+
+    match c {
+        Ok(s) => Some(s),
+        Err(e) => { set_err(e.to_string()); None } 
+    }
+} }
+
 byond_fn! { last_err() {
     let mut err = String::new();
     LASTERR.with(|cell| err.clone_from(&*cell.borrow()));

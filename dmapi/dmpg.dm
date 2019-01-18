@@ -26,6 +26,11 @@
         return LastErr()
     . = json_decode(.)
 
+/datum/DMPG/proc/Execute(...)
+    . = call(libname, "execute")(arglist(args))
+    if (!.)
+        return LastErr()
+
 /datum/DMPG/proc/Shutdown()
     . = __call("shutdown")
 

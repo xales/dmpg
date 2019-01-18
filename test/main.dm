@@ -28,5 +28,7 @@
     var/dl = dumplist(q)
     for (var/i in dl)
         world.log << "row: [i]"
+    var/qn = DMPG.Execute("SELECT * FROM testdata")
+    world.log << "execute: [qn]"
     DMPG.Shutdown()
     shutdown()
